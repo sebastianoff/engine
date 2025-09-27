@@ -17,8 +17,12 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .link_libc = true,
+            .imports = &.{
+                .{ .name = "sdl", .module = sdl_mod },
+            },
         }),
     });
+    start_exe.root_module.linkSystemLibrary("sdl3", .{ .use_pkg_config = .yes, .preferred_link_mode = .dynamic, .needed = true });
     const game_lib = b.addLibrary(.{
         .name = "game",
         .root_module = b.createModule(.{
@@ -26,14 +30,10 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .target = target,
             .link_libc = true,
-            .imports = &.{
-                .{ .name = "sdl", .module = sdl_mod },
-            },
         }),
         .linkage = .dynamic,
     });
     game_lib.root_module.addAnonymousImport("LICENSE", .{ .root_source_file = b.path("LICENSE") });
-    game_lib.root_module.linkSystemLibrary("sdl3", .{ .use_pkg_config = .yes, .preferred_link_mode = .dynamic, .needed = true });
     b.installArtifact(start_exe);
     b.installArtifact(game_lib);
     // run
