@@ -1,0 +1,7 @@
+.{
+    .name = .engine,
+    .version = "0.0.1",
+    .minimum_zig_version = "0.15.1",
+    .paths = .{""},
+    .fingerprint = 0xe8a81a8d7bf5981c,
+}
