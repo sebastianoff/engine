@@ -50,9 +50,14 @@ pub const Lib = struct {
             lib.source_hot = null;
         }
         const hot = try lib.initHotPath(allocator);
+        errdefer {
+            std.fs.cwd().deleteFile(hot) catch {};
+            allocator.free(hot);
+        }
         try lib.copySrcTo(allocator, hot);
         lib.dyn = try open(hot);
         try lib.bind();
+        lib.source_hot = hot;
     }
 
     pub fn currentMtime(path: []const u8) !i128 {
@@ -60,14 +65,13 @@ pub const Lib = struct {
         return @intCast(stat.mtime);
     }
 
-    fn initHotPath(lib: *Lib, allocator: std.mem.Allocator) std.mem.Allocator.Error![]u8 {
+    fn initHotPath(lib: *Lib, allocator: std.mem.Allocator) ![]u8 {
         lib.index += 1;
         const dir_path = std.fs.path.dirname(lib.source) orelse ".";
         const base = std.fs.path.basename(lib.source);
-        const tmp_base = try std.fmt.allocPrint(allocator, "{s}.hot.{d}", .{ base, lib.index });
+        const tmp_base = try std.fmt.allocPrint(allocator, "{s}.hot.{d}{s}", .{ std.fs.path.stem(base), lib.index, std.fs.path.extension(base) });
         defer allocator.free(tmp_base);
-        const tmp_abs = try std.fs.path.join(allocator, &.{ dir_path, tmp_base });
-        return tmp_abs;
+        return try std.fs.path.join(allocator, &.{ dir_path, tmp_base });
     }
 
     fn copySrcTo(lib: *Lib, allocator: std.mem.Allocator, dst: []const u8) !void {
