@@ -19,5 +19,5 @@ export fn _deinit() callconv(.c) void {
 
 const Root = @import("engine/Root.zig");
 const builtin = @import("builtin");
-const writer = @import("writer.zig");
+const writer = @import("engine/writer.zig");
 const std = @import("std");

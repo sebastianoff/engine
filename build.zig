@@ -40,6 +40,13 @@ pub fn build(b: *std.Build) void {
     run_step.dependOn(step: {
         const run_cmd = b.addRunArtifact(start_exe);
         run_cmd.step.dependOn(b.getInstallStep());
+        // libs are installed to bin on windows, lib everywhere else
+        const lib_install_dir: std.Build.InstallDir = switch (target.result.os.tag) {
+            .windows => .bin,
+            else => .lib,
+        };
+        const installed_game_lib_path = b.getInstallPath(lib_install_dir, game_lib.out_filename);
+        run_cmd.addArg(installed_game_lib_path);
         if (b.args) |args| {
             run_cmd.addArgs(args);
         }

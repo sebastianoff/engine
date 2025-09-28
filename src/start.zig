@@ -1,3 +1,7 @@
+pub const std_options: std.Options = .{
+    .logFn = writer.log,
+};
+
 const mainFn = *const fn (root: *const Root) callconv(.c) void;
 const frameFn = *const fn (frame: *Root.Frame) callconv(.c) bool;
 const deinitFn = *const fn () callconv(.c) void;
@@ -107,6 +111,8 @@ pub const Lib = struct {
 };
 
 pub fn main() !u8 {
+    log.debug("hello, world!", .{});
+    log.debug("mode: {[mode]s}", .{ .mode = @tagName(builtin.mode) });
     var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
     const gpa, const debug = switch (builtin.mode) {
         .Debug, .ReleaseSafe => .{ debug_allocator.allocator(), true },
@@ -142,6 +148,7 @@ pub fn main() !u8 {
     var last_color: [4]f32 = .{ 0.10, 0.14, 0.18, 1.0 };
     var time_acc: f32 = 0;
     // TODO: mvoe out to Root.update() and Root.draw() so this becomes nice and clean
+    std.log.debug("main loop", .{});
     while (running) {
         const mtime = try Lib.currentMtime(lib.source);
         if (mtime != lib.mtime) {
@@ -217,5 +224,7 @@ pub fn main() !u8 {
 
 const std = @import("std");
 const sdl = @import("sdl");
+const log = std.log.scoped(.start);
+const writer = @import("engine/writer.zig");
 const Root = @import("engine/Root.zig");
 const builtin = @import("builtin");

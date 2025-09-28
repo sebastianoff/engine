@@ -1,16 +1,9 @@
-pub const Level = enum {
-    err,
-    warn,
-    info,
-    debug,
-};
-
-pub const default_level: Level = switch (builtin.mode) {
+pub const default_level: std.log.Level = switch (builtin.mode) {
     .Debug => .debug,
     .ReleaseSafe, .ReleaseFast, .ReleaseSmall => .info,
 };
 
-pub var level: Level = default_level;
+pub var level: std.log.Level = default_level;
 
 pub const colors = .{
     .debug = .{.dim},
@@ -19,13 +12,13 @@ pub const colors = .{
     .err = .{ .bold, .red },
 };
 
-pub fn logEnabled(comptime message_level: Level) bool {
+pub fn logEnabled(comptime message_level: std.log.Level) bool {
     return @intFromEnum(message_level) <= @intFromEnum(level);
 }
 
-fn log(
-    comptime message_level: Level,
-    scope: @TypeOf(.enum_literal),
+pub fn log(
+    comptime message_level: std.log.Level,
+    comptime scope: @TypeOf(.enum_literal),
     comptime format: []const u8,
     args: anytype,
 ) void {
