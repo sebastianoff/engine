@@ -1,7 +1,7 @@
 var t: f32 = 0;
 
 export fn _name() [*:0]const u8 {
-    return "boovoi";
+    return "boovi";
 }
 
 export fn _main(root: *const Root) void {

@@ -24,6 +24,9 @@
             xorg.libXcursor
             xorg.libXrandr
             xorg.libXi
+	    # for compression
+	    oxipng
+	    ktx-tools
 	];
       in {
         devShells.default = pkgs.mkShell {

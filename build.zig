@@ -23,6 +23,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
     start_exe.root_module.linkSystemLibrary("sdl3", .{ .use_pkg_config = .yes, .preferred_link_mode = .dynamic, .needed = true });
+    // game
     const game_lib = b.addLibrary(.{
         .name = "game",
         .root_module = b.createModule(.{
@@ -34,6 +35,11 @@ pub fn build(b: *std.Build) void {
         .linkage = .dynamic,
     });
     game_lib.root_module.addAnonymousImport("LICENSE", .{ .root_source_file = b.path("LICENSE") });
+    const compress_step = compress.addStep(b, .{
+        .src_dir = "assets",
+        .zopfli = optimize != .Debug,
+    });
+    b.getInstallStep().dependOn(compress_step);
     b.installArtifact(start_exe);
     b.installArtifact(game_lib);
     // run
@@ -59,4 +65,5 @@ pub fn build(b: *std.Build) void {
     test_fmt_step.dependOn(&b.addFmt(.{ .paths = fmt_paths, .check = true }).step);
 }
 
+const compress = @import("build/compress.zig");
 const std = @import("std");
