@@ -4,8 +4,6 @@ pub const Options = struct {
     src_dir: []const u8,
     install_dir: std.Build.InstallDir = .prefix,
     dest_subdir: []const u8 = "share/assets",
-    /// > "Use the much slower but stronger Zopfli compressor for main compression trials."
-    zopfli: bool,
 };
 
 /// requires 'oxipng' in path

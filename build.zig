@@ -37,7 +37,6 @@ pub fn build(b: *std.Build) void {
     game_lib.root_module.addAnonymousImport("LICENSE", .{ .root_source_file = b.path("LICENSE") });
     const compress_step = compress.addStep(b, .{
         .src_dir = "assets",
-        .zopfli = optimize != .Debug,
     });
     b.getInstallStep().dependOn(compress_step);
     b.installArtifact(start_exe);
