@@ -14,7 +14,7 @@ pub const Frame = extern struct {
     /// in-out
     clear_color: @Vector(4, f32),
 
-    /// only supposed to be called from runner!
+    /// only supposed to be called by runner!
     pub fn draw(frame: *const Frame, window: *Window) bool {
         const cmd = sdl.SDL_AcquireGPUCommandBuffer(window.device_ptr) orelse {
             std.Thread.sleep(std.time.ns_per_ms);
