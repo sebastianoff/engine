@@ -14,6 +14,7 @@ pub const Frame = extern struct {
     /// in-out
     clear_color: @Vector(4, f32),
 
+    /// only supposed to be called from runner!
     pub fn draw(frame: *const Frame, window: *Window) bool {
         const cmd = sdl.SDL_AcquireGPUCommandBuffer(window.device_ptr) orelse {
             std.Thread.sleep(std.time.ns_per_ms);
@@ -55,6 +56,7 @@ pub const Frame = extern struct {
         return true;
     }
 
+    /// only supposed to be called by runner!
     pub fn update(frame: *Frame, window: *Window, callback: ?frameFn) bool {
         var w: c_int = 0;
         var h: c_int = 0;
@@ -66,6 +68,10 @@ pub const Frame = extern struct {
             return f(frame);
         }
         return false;
+    }
+
+    pub fn drawClearColor(frame: *Frame, value: @Vector(4, f32)) void {
+        frame.clear_color = value;
     }
 };
 

@@ -13,7 +13,7 @@ export fn _main(root: *const Root) void {
 export fn _frame(frame: *Root.Frame) bool {
     t += frame.dt;
     const s = 1 * (1 + std.math.sin(t));
-    frame.clear_color = .{ 0.1 + 0.10 * s, 0.14 + 0.08 * s, 0.18 + 0.06 * s, 1.0 };
+    frame.drawClearColor(.{ 0.1 + 0.10 * s, 0.14 + 0.08 * s, 0.18 + 0.06 * s, 1.0 });
     return true;
 }
 
