@@ -2,10 +2,6 @@ pub const std_options: std.Options = .{
     .logFn = writer.log,
 };
 
-const mainFn = *const fn (root: *const Root) callconv(.c) void;
-const frameFn = *const fn (frame: *Root.Frame) callconv(.c) bool;
-const deinitFn = *const fn () callconv(.c) void;
-
 pub const Lib = struct {
     source: []const u8 = &.{},
     mtime: i128 = 0,
@@ -13,9 +9,10 @@ pub const Lib = struct {
     source_hot: ?[]u8 = null,
     dyn: ?std.DynLib = null,
     // function pointers
-    mainFn: ?mainFn = null,
-    frameFn: ?frameFn = null,
-    deinitFn: ?deinitFn = null,
+    mainFn: ?Root.mainFn = null,
+    frameFn: ?Root.frameFn = null,
+    deinitFn: ?Root.deinitFn = null,
+    name: [*:0]const u8 = "",
 
     index: usize = 0,
 
@@ -108,9 +105,14 @@ pub const Lib = struct {
 
     fn bind(lib: *Lib) !void {
         var dynlib = lib.dyn.?;
-        lib.mainFn = dynlib.lookup(mainFn, "_main") orelse return error.Symbol_main;
-        lib.frameFn = dynlib.lookup(frameFn, "_frame") orelse return error.Symbol_frame;
-        lib.deinitFn = dynlib.lookup(deinitFn, "_deinit") orelse return error.Symbol_deinit;
+        lib.mainFn = dynlib.lookup(Root.mainFn, "_main") orelse return error.Symbol_main;
+        lib.frameFn = dynlib.lookup(Root.frameFn, "_frame") orelse return error.Symbol_frame;
+        lib.deinitFn = dynlib.lookup(Root.deinitFn, "_deinit") orelse return error.Symbol_deinit;
+        if (dynlib.lookup(Root.nameFn, "_name")) |name| {
+            lib.name = name();
+        } else {
+            lib.name = "tip: export _name() [*:0]const u8 to set the name for your window";
+        }
     }
 };
 
@@ -118,40 +120,42 @@ pub fn main() !u8 {
     log.debug("hello, world!", .{});
     log.debug("mode: {[mode]s}", .{ .mode = @tagName(builtin.mode) });
     var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
-    const gpa, const debug = switch (builtin.mode) {
+    const allocator, const debug = switch (builtin.mode) {
         .Debug, .ReleaseSafe => .{ debug_allocator.allocator(), true },
         .ReleaseFast, .ReleaseSmall => .{ std.heap.smp_allocator, false },
     };
     defer if (debug) {
         _ = debug_allocator.deinit();
     };
-    var arena_allocator: std.heap.ArenaAllocator = .init(gpa);
-    defer arena_allocator.deinit();
-    const allocator = arena_allocator.allocator();
     // cli
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
     if (args.len < 2) std.process.fatal("usage: {[self]s} [path]", .{ .self = args[0] });
 
     const path = try std.fs.cwd().realpathAlloc(allocator, args[1]);
+    defer allocator.free(path);
     // running
     var lib: Lib = .{};
     try lib.init(allocator, path);
     defer lib.deinit(allocator);
-    // init the window
-    var window: Root.Window = try .init(.{ .title = "TODO customizable title" });
-    defer window.deinit();
     // load the game initially
     try lib.initFresh(allocator);
     if (lib.mainFn) |init| init(&.{});
+    std.log.debug("_name = {s}", .{lib.name});
+    // init the window
+    var window: Root.Window = try .init(.{ .title = std.mem.span(lib.name) });
+    defer window.deinit();
     // main loop
     var timer = try std.time.Timer.start();
     var prev = timer.read();
     var running = true;
 
-    var last_color: [4]f32 = .{ 0.10, 0.14, 0.18, 1.0 };
+    // last
+    var last_color: @Vector(4, f32) = .{ 0.10, 0.14, 0.18, 1.0 };
+    var last_title_owned = try allocator.dupe(u8, std.mem.span(lib.name));
+    defer allocator.free(last_title_owned);
+
     var time_acc: f32 = 0;
-    // TODO: mvoe out to Root.update() and Root.draw() so this becomes nice and clean
     std.log.debug("main loop", .{});
     while (running) {
         const mtime = try Lib.currentMtime(lib.source);
@@ -159,8 +163,13 @@ pub fn main() !u8 {
             lib.mtime = mtime;
             try lib.initFresh(allocator);
             if (lib.mainFn) |init| init(&.{});
+            if (!std.mem.eql(u8, std.mem.span(lib.name), last_title_owned)) {
+                window.setName(std.mem.span(lib.name)) catch {};
+                allocator.free(last_title_owned);
+                last_title_owned = try allocator.dupe(u8, std.mem.span(lib.name));
+                std.log.debug("(new) _name = {s}", .{lib.name});
+            }
         }
-
         var ev: sdl.SDL_Event = undefined;
         while (sdl.SDL_PollEvent(&ev) == true) {
             if (ev.type == sdl.SDL_EVENT_QUIT) running = false;
@@ -171,56 +180,26 @@ pub fn main() !u8 {
         prev = now;
         time_acc += dt_s;
 
-        const cmd = sdl.SDL_AcquireGPUCommandBuffer(window.device_ptr) orelse {
-            std.Thread.sleep(std.time.ns_per_ms);
-            continue;
-        };
-        var swapchain_texture: ?*sdl.SDL_GPUTexture = null;
-        var width: sdl.Uint32 = 0;
-        var height: sdl.Uint32 = 0;
-        if (!sdl.SDL_WaitAndAcquireGPUSwapchainTexture(cmd, window.ptr, &swapchain_texture, &width, &height)) {
-            _ = sdl.SDL_CancelGPUCommandBuffer(cmd);
-            std.Thread.sleep(std.time.ns_per_ms);
-            continue;
-        }
-
         var frame: Root.Frame = .{
             .time = time_acc,
             .dt = dt_s,
-            .width = @floatFromInt(width),
-            .height = @floatFromInt(height),
+            .width = 0,
+            .height = 0,
             .clear_color = last_color,
         };
-        if (lib.frameFn) |update| {
-            running = running and update(&frame);
-        } else {
-            running = false;
-        }
+
+        running = running and frame.update(&window, lib.frameFn);
         last_color = frame.clear_color;
 
-        var target: sdl.SDL_GPUColorTargetInfo = .{
-            .texture = swapchain_texture.?,
-            .mip_level = 0,
-            .layer_or_depth_plane = 0,
-            .clear_color = .{ .r = frame.clear_color[0], .g = frame.clear_color[1], .b = frame.clear_color[2], .a = frame.clear_color[3] },
-            .load_op = sdl.SDL_GPU_LOADOP_CLEAR,
-            .store_op = sdl.SDL_GPU_STOREOP_STORE,
-            .resolve_texture = null,
-            .resolve_mip_level = 0,
-            .resolve_layer = 0,
-            .cycle = false,
-            .cycle_resolve_texture = false,
-        };
-
         if (running) {
-            if (sdl.SDL_BeginGPURenderPass(cmd, &target, 1, null)) |pass| {
-                sdl.SDL_EndGPURenderPass(pass);
+            if (!frame.draw(&window)) {
+                std.Thread.sleep(std.time.ns_per_ms);
+                continue;
             }
-            _ = sdl.SDL_SubmitGPUCommandBuffer(cmd);
         } else {
-            _ = sdl.SDL_SubmitGPUCommandBuffer(cmd);
             break;
         }
+
         std.Thread.sleep(std.time.ns_per_ms);
     }
     return 0;

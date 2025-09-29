@@ -126,6 +126,18 @@ pub fn clearColor(window: *Window, r: f32, g: f32, b: f32, a: f32) !void {
     }
 }
 
+pub fn setName(window: *Window, name: [:0]const u8) !void {
+    if (!sdl.SDL_SetWindowTitle(window.ptr, name)) {
+        writer.err("{[err]s} ({[file]s}{[line]d}:{[column]d}: Window.setName at SDL_SetWindowTitle)", .{
+            .file = @src().file,
+            .line = @src().line,
+            .column = @src().column,
+            .err = sdl.SDL_GetError(),
+        });
+        return error.SDL_SetWindowTitle;
+    }
+}
+
 pub fn deinit(window: *Window) void {
     _ = sdl.SDL_WaitForGPUIdle(window.device_ptr);
     sdl.SDL_ReleaseWindowFromGPUDevice(window.device_ptr, window.ptr);
