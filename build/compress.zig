@@ -6,7 +6,7 @@ pub const Options = struct {
     dest_subdir: []const u8 = "share/assets",
 };
 
-/// requires 'oxipng' in path
+/// requires 'toktx' in path
 pub fn addStep(b: *std.Build, options: Options) *std.Build.Step {
     const step = b.step("compress", "Compress PNG assets and install them");
     var arena: std.heap.ArenaAllocator = .init(b.allocator);
