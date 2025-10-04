@@ -103,7 +103,6 @@ pub fn clearColor(window: *Window, r: f32, g: f32, b: f32, a: f32) !void {
         .cycle = false,
         .cycle_resolve_texture = false,
     };
-    todo.call();
     const render_pass = sdl.SDL_BeginGPURenderPass(command, &color_target, 1, null) orelse {
         _ = sdl.SDL_CancelGPUCommandBuffer(command);
         writer.err("{[err]s} ({[file]s}{[line]d}:{[column]d}: Window.clearColor at SDL_BeginGPURenderPass)", .{
@@ -145,12 +144,6 @@ pub fn deinit(window: *Window) void {
     sdl.SDL_DestroyWindow(window.ptr);
     sdl.SDL_QuitSubSystem(sdl.SDL_INIT_VIDEO);
 }
-
-var todo = std.once(struct {
-    fn todoDynamicRendering() void {
-        writer.info("TODO: use dynamic rendering when it will be available in SDL", .{});
-    }
-}.todoDynamicRendering);
 
 const std = @import("std");
 const sdl = @import("sdl");
