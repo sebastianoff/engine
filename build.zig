@@ -7,7 +7,7 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseFast });
     // sdl.
-    const header = b.addWriteFiles().add("sdl.h", "#include <SDL3/SDL.h>\n");
+    const header = b.addWriteFiles().add("sdl.h", "#include <SDL3/SDL.h>\n#include <SDL3_shadercross/SDL_shadercross.h>");
     const sdl_mod = b.addTranslateC(.{ .root_source_file = header, .target = target, .optimize = optimize }).createModule();
     // root.
     const start_exe = b.addExecutable(.{
@@ -23,6 +23,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
     start_exe.root_module.linkSystemLibrary("sdl3", .{ .use_pkg_config = .yes, .preferred_link_mode = .dynamic, .needed = true });
+    start_exe.root_module.linkSystemLibrary("sdl3-shadercross", .{ .use_pkg_config = .yes, .preferred_link_mode = .dynamic, .needed = true });
     // game
     const game_lib = b.addLibrary(.{
         .name = "game",
@@ -64,5 +65,6 @@ pub fn build(b: *std.Build) void {
     test_fmt_step.dependOn(&b.addFmt(.{ .paths = fmt_paths, .check = true }).step);
 }
 
-const compress = @import("build/compress.zig");
 const std = @import("std");
+
+const compress = @import("build/compress.zig");
