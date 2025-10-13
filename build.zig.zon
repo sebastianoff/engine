@@ -1,0 +1,11 @@
+.{
+    .name = .engine,
+    .version = "1.0.0",
+    .minimum_zig_version = "0.15.1",
+    .paths = .{
+        "src",
+        "LICENSE",
+        "README",
+    },
+    .fingerprint = 0xe8a81a8df58ab6a8,
+}
