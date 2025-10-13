@@ -1,4 +1,8 @@
 Simple game engine made on Zig.
 
+Uses SDL (https://github.com/libsdl-org/SDL), distributed under zlib license, wrapped for Zig build system by Carl Åstholm (https://github.com/castholm/SDL).
+
+Enjoy!
+
 Distributed under MIT license.
 Copyright © 2025 Sebastian
