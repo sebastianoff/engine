@@ -5,7 +5,7 @@ const build_options = @import("build_options");
 
 pub const signatures = struct {
     pub const init = struct {
-        pub const ptr = *const fn () callconv(.c) u8;
+        pub const FnPtr = *const fn () callconv(.c) u8;
         pub const name = "init";
 
         pub fn default() callconv(.c) u8 {
@@ -27,7 +27,7 @@ pub fn main() !u8 {
     var arena: std.heap.ArenaAllocator = .init(allocator);
     defer arena.deinit();
     const gpa = arena.allocator();
-    //  since we will open libraries that are relative to the runner, we will
+    // since we will open libraries that are relative to the runner, we will
     // set cwd to the runner directory to avoid any path-related issues
     var buffer: [std.fs.max_path_bytes]u8 = undefined;
     var dir = try std.fs.openDirAbsolute(try std.fs.selfExeDirPath(&buffer), .{});
@@ -53,17 +53,6 @@ pub fn main() !u8 {
     };
     defer lib.close();
 
-    const init = lib.lookup(signatures.init.ptr, signatures.init.name) orelse signatures.init.default;
+    const init = lib.lookup(signatures.init.FnPtr, signatures.init.name) orelse signatures.init.default;
     return init();
-}
-
-fn printUsageFatal() noreturn {
-    const usage =
-        \\[path]
-        \\
-        \\path - Path to the dynamic library to load
-        \\
-    ;
-    std.debug.print("usage: {s}", .{usage});
-    std.process.exit(1);
 }
